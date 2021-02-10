@@ -8,7 +8,7 @@ import json
 #The sequence of numbers of configurations to use in optimization. 
 #You should check that the energy does not change as you increase this 
 #number.
-nconfigs = [400,1600,3200,6400,12800,25600] 
+nconfigs = [400] 
 
 rule MEAN_FIELD:
     input: "{dir}/system.json"
@@ -23,6 +23,7 @@ rule MEAN_FIELD:
 def opt_dependency(wildcards):
     d={}
     basedir = f"{wildcards.dir}/"
+    print(wildcards)
     nconfig = int(wildcards.nconfig)
     ind = nconfigs.index(nconfig)
     if hasattr(wildcards,'hci_tol'):
@@ -33,10 +34,12 @@ def opt_dependency(wildcards):
     if hasattr(wildcards, 'hci_tol'):
         basefile = basedir+f"opt_hci{wildcards.hci_tol}_{wildcards.determinant_cutoff}_{wildcards.orbitals}_"
     else: 
-        basefile = basedir+f"opt_mf_{wildcards.orbitals}_"
+        basefile = basedir+f"{wildcards.superdir}/opt_mf_{wildcards.orbitals}_"
 
     if ind > 0:
         d['start_from'] = basefile+f"{wildcards.statenumber}_{nconfigs[ind-1]}.chk"
+    elif int(wildcards.statenumber)> 0:
+        d['start_from'] = basedir+f"{wildcards.superdir}/input_mf_{wildcards.orbitals}_{wildcards.statenumber}_{nconfigs[ind-1]}.chk"
     for i in range(int(wildcards.statenumber)):
         d[f'anchor_wf{i}'] = basefile+f"{i}_{nconfigs[-1]}.chk"
     return d
@@ -72,6 +75,12 @@ rule OPTIMIZE_MF:
             pyqmc.OPTIMIZE(input.mf, output[0], anchors = anchor_wfs, start_from=start_from, nconfig=int(wildcards.nconfig), slater_kws=slater_kws, 
                             S=S, client=client, npartitions=qmc_threads)
 
+
+rule PREPARE_EXCITED_STATE:
+    input: mf = "{dir}/mf.chk", gs= "{dir}/{superdir}/opt_mf_{orbitals}_0_{nconfig}.chk"
+    output: "{dir}/{superdir}/input_mf_{orbitals}_1_{nconfig}.chk"
+    run:
+        functions.construct_excited_state(input.mf, input.gs, output[0])
 
 
 rule VMC:
