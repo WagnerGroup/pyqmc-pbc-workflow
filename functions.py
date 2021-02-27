@@ -18,7 +18,8 @@ def save_scf_iteration(chkfile, envs):
 
 def mean_field(chkfile, functional, kmesh=(2,2,2),exp_to_discard=0.2, basis='vdz', settings=None):
     import pyscf.pbc.scf as scf
-    mol = pyscf.pbc.gto.M(basis=f'ccecpccp{basis}', ecp='ccecp', unit='bohr', **settings)
+    #mol = pyscf.pbc.gto.M(basis=f'ccecpccp{basis}', ecp='ccecp', unit='bohr', **settings)
+    mol = pyscf.pbc.gto.M(basis=f'bfd{basis}', ecp='bfd_pp', unit='bohr', **settings)
     kpts = mol.make_kpts(kmesh)
     mol.exp_to_discard=exp_to_discard
     mol.build()
